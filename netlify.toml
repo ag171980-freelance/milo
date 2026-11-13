@@ -1,0 +1,45 @@
+# El front en Netlify; la API PHP en un hosting aparte (Apache + PHP 8.2+ + MySQL).
+#
+# Netlify hace de proxy para /api: el navegador sólo ve el dominio de
+# Netlify, así que no hace falta CORS.
+#
+# Reemplazar API_HOST por el dominio del backend (con https), apuntando a
+# la carpeta que sirve backend/public/.
+#
+# Ojo con el tamaño de subida: el proxy de Netlify tiene sus propios
+# límites de cuerpo y tiempo. Si los archivos grandes fallan, apuntá
+# VITE_API_URL directo al dominio de la API (https://API_HOST) y agregá
+# el dominio de Netlify a CORS_ORIGINS en el .env del backend.
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  VITE_API_URL = "/api"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://API_HOST/:splat"
+  status = 200
+  force = true
+
+# BrowserRouter: cualquier otra ruta la resuelve React.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

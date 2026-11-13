@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Copiá Fácil · Demo</title>
+<meta name="description" content="Demo de Copiá Fácil: tus clientes escanean un QR, suben el archivo, eligen opciones y pagan con Mercado Pago. Vos lo recibís en tu panel y lo imprimís.">
+<meta name="theme-color" content="#FFD12E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23FFD12E'/%3E%3Cg fill='none' stroke='%231F1A00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 9.5V5h8v4.5'/%3E%3Crect x='5' y='9.5' width='14' height='6.5' rx='1.5'/%3E%3Cpath d='M8 13.5h8V19H8z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Copiá Fácil">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
+<style>
+/* Layout: client phone on the left, shop panel on the right; tabs on phones. Kept deliberately quiet: one accent, few borders. */
+:root{
+  --paper:#F5F6F2; --surface:#FFFFFF; --sunken:#F0F1EC; --ink:#16181D; --muted:#6A6F78; --line:#E3E5DF;
+  --accent:#FFD12E; --accent-ink:#1F1A00; --accent-soft:#FFF6CC;
+  --ok:#1C8A4B; --ok-soft:#E0F3E7; --warn:#A86200; --warn-soft:#FCEED8;
+  --bad:#BF3527; --bad-soft:#FBE3DF; --info:#2353BE; --info-soft:#E4EBFA;
+  --frame:#22252B; --shadow:0 18px 40px -20px rgba(22,24,29,.3);
+  --f-display:"Bricolage Grotesque","Inter",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root{
+  --paper:#111317; --surface:#1A1D23; --sunken:#16191E; --ink:#ECEDEF; --muted:#9A9FA9; --line:#2A2E35;
+  --accent:#FFD12E; --accent-ink:#1F1A00; --accent-soft:#3A3213;
+  --ok:#4CC47F; --ok-soft:#14301F; --warn:#F2A93E; --warn-soft:#382812;
+  --bad:#F26D5F; --bad-soft:#3B1B17; --info:#82A8FF; --info-soft:#19243F;
+  --frame:#000000; --shadow:0 18px 40px -20px rgba(0,0,0,.8); color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(40px + env(safe-area-inset-bottom,0px))}
+
+/* Header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:24px;line-height:1;margin:0;letter-spacing:-.02em}
+.tour-btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px;cursor:pointer}
+.tour-btn:hover{border-color:var(--ink)}
+
+/* Tabs (phones only) */
+.tabs{display:none;gap:4px;background:var(--sunken);border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs button{flex:1;border:0;background:transparent;padding:9px 10px;border-radius:9px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:11px;font-weight:700;display:inline-grid;place-items:center}
+.badge[data-n="0"]{display:none}
+
+.stage{display:grid;grid-template-columns:380px minmax(0,1fr);gap:48px;align-items:start}
+
+/* Phone */
+.phone{background:var(--frame);border-radius:42px;padding:9px;box-shadow:var(--shadow);position:sticky;top:16px}
+.screen{background:var(--paper);border-radius:34px;height:min(760px,calc(100vh - 80px));min-height:540px;overflow-y:auto;overflow-x:hidden;position:relative;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.shopbar{display:flex;align-items:center;gap:10px;padding:24px 20px 4px}
+.shopbar .av{width:34px;height:34px;border-radius:9px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:14px;flex:none}
+.shopbar b{display:block;font-size:14px;line-height:1.2}
+.shopbar span{font-size:12px;color:var(--muted)}
+.step{padding:16px 20px 0}
+.step h2{font-family:var(--f-display);font-weight:800;font-size:26px;line-height:1.1;letter-spacing:-.02em;margin:0 0 20px;text-wrap:balance}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.lbl{font-size:13px;font-weight:600}
+.txt{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;font-size:16px}
+.txt:focus{border-color:var(--ink);outline:none}
+
+.drop{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;cursor:pointer}
+.drop:hover{border-color:var(--muted)}
+.drop.has{border-style:solid}
+.drop .ic{width:34px;height:40px;border-radius:6px;background:var(--sunken);display:grid;place-items:center;font-family:var(--f-mono);font-size:9.5px;font-weight:700;color:var(--muted);flex:none;text-transform:uppercase}
+.drop.has .ic{background:var(--accent-soft);color:var(--ink)}
+.drop .meta{min-width:0;flex:1}
+.drop .meta b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drop .meta span{font-size:12px;color:var(--muted)}
+.vis-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.sample{border:0;background:none;padding:0;font-size:12.5px;color:var(--muted);text-decoration:underline;cursor:pointer;align-self:flex-start}
+
+.inline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.stepper{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.stepper button{width:40px;height:40px;border:0;background:transparent;font-size:19px;cursor:pointer;border-radius:11px}
+.stepper button:hover{background:var(--sunken)}
+.stepper input{width:40px;border:0;background:transparent;text-align:center;font-family:var(--f-mono);font-weight:700;font-size:16px;-moz-appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--sunken);border-radius:12px;padding:4px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{text-align:center;border-radius:9px;padding:9px 6px;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted)}
+.seg input:checked + label{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg input:focus-visible + label{outline:2px solid var(--info);outline-offset:1px}
+
+details.more{margin-bottom:20px}
+details.more summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);list-style:none;display:inline-flex;align-items:center;gap:6px;padding:4px 0}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::after{content:"+";font-family:var(--f-mono)}
+details.more[open] summary::after{content:"–"}
+details.more[open] summary{margin-bottom:14px}
+
+.paybar{position:sticky;bottom:0;margin:0 -20px;padding:14px 20px calc(16px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.paybar .tot{flex:1;min-width:0}
+.paybar .tot b{display:block;font-family:var(--f-mono);font-size:22px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.paybar .tot span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paybar .tot span.miss{color:var(--bad)}
+.btn{border:0;border-radius:12px;padding:13px 18px;font-weight:700;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-dark{background:var(--ink);color:var(--paper)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-block{width:100%}
+.link{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:14px;padding:8px}
+.center{text-align:center;padding:6px 0 24px}
+
+/* Pay step */
+.amount{font-family:var(--f-mono);font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1;margin:0 0 6px;font-variant-numeric:tabular-nums}
+.paysub{color:var(--muted);font-size:14px;margin:0 0 24px;overflow-wrap:anywhere}
+.note{font-size:12.5px;color:var(--muted);margin:12px 0 0;text-align:center}
+.demo-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--warn-soft);color:var(--warn);padding:3px 8px;border-radius:6px;margin-bottom:12px}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Status step */
+.okline{display:inline-flex;align-items:center;gap:8px;color:var(--ok);font-weight:600;font-size:14px;margin-bottom:16px}
+.okline.bad{color:var(--bad)}
+.ordlbl{font-size:13px;color:var(--muted)}
+.ordnum{font-family:var(--f-mono);font-size:48px;font-weight:700;letter-spacing:-.03em;line-height:1;margin:2px 0 8px}
+.stlead{color:var(--muted);font-size:14px;margin:0}
+.timeline{list-style:none;margin:24px 0;padding:0}
+.timeline li{display:grid;grid-template-columns:22px 1fr;gap:12px;align-items:center;position:relative;padding-bottom:20px;color:var(--muted);font-size:14px;font-weight:500}
+.timeline li:last-child{padding-bottom:0}
+.timeline li::after{content:"";position:absolute;left:10px;top:22px;bottom:0;width:2px;background:var(--line)}
+.timeline li:last-child::after{display:none}
+.timeline .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--paper);display:grid;place-items:center}
+.timeline li.done,.timeline li.now{color:var(--ink)}
+.timeline li.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
+.timeline li.done::after{background:var(--ok)}
+.timeline li.now .dot{border-color:var(--ink);background:var(--accent)}
+
+.notify{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:16px}
+.notify .bell{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;flex:none}
+.notify p{margin:0;font-size:13.5px;line-height:1.4;flex:1;min-width:0}
+.notify .nbtn{border:0;background:var(--ink);color:var(--paper);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;cursor:pointer;flex:none}
+.notify.ok{background:var(--ok-soft);border-color:transparent;color:var(--ok);font-weight:600}
+.notify.ok .bell{background:transparent}
+.notify.muted p{color:var(--muted)}
+
+/* Shop panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.phead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;padding:22px 24px 18px}
+.phead h2{font-family:var(--f-display);font-weight:800;font-size:24px;margin:0;letter-spacing:-.01em;line-height:1.1}
+.phead p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.stats{display:flex;gap:28px}
+.stat small{display:block;font-size:12px;color:var(--muted)}
+.stat b{font-family:var(--f-mono);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.empty{padding:40px 24px;text-align:center;color:var(--muted);font-size:14px}
+
+.ticket{display:flex;flex-direction:column;gap:6px;padding:16px 24px;border-bottom:1px solid var(--line)}
+.ticket:last-child{border-bottom:0}
+.ticket.fresh{animation:fresh 2.4s ease-out}
+@keyframes fresh{0%{background:var(--accent-soft)}100%{background:transparent}}
+.thead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tname{font-weight:700;font-size:15px}
+.tnum{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.ttime{font-size:12px;color:var(--muted)}
+.pill{margin-left:auto;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.p-nuevo{background:var(--info-soft);color:var(--info)}
+.p-imprimiendo{background:var(--warn-soft);color:var(--warn)}
+.p-listo{background:var(--ok-soft);color:var(--ok)}
+.p-rechazado{background:var(--bad-soft);color:var(--bad)}
+.tfile{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tspec{font-size:13px;color:var(--muted)}
+.tnote{font-size:13px;color:var(--muted);font-style:italic}
+.tfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.tprice{font-family:var(--f-mono);font-weight:700;font-size:15px}
+.tprice small{font-family:var(--f-body);font-weight:500;font-size:12px;color:var(--ok);margin-left:6px}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.abtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.abtn:hover{border-color:var(--ink)}
+.abtn.main{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.abtn.quiet{border-color:transparent;color:var(--muted)}
+.abtn.quiet:hover{color:var(--bad);border-color:transparent}
+.abtn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.confirm{font-size:13px;color:var(--bad);font-weight:600}
+
+details.prices{border-top:1px solid var(--line)}
+details.prices summary{padding:16px 24px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted);list-style:none;display:flex;justify-content:space-between}
+details.prices summary::-webkit-details-marker{display:none}
+details.prices summary::after{content:"+";font-family:var(--f-mono)}
+details.prices[open] summary::after{content:"–"}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:0 24px 22px}
+.pgrid label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+.pinput{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;padding:0 10px}
+.pinput span{font-family:var(--f-mono);color:var(--muted)}
+.pinput input{border:0;background:transparent;width:100%;min-width:0;padding:8px 6px;font-family:var(--f-mono);font-weight:700;font-size:16px}
+.pinput input:focus{outline:none}
+.pinput:focus-within{border-color:var(--ink)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100000;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.foot{margin-top:24px;font-size:12.5px;color:var(--muted)}
+
+/* Guided tour (driver.js) */
+.driver-popover.cf-tour{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:300px;box-shadow:var(--shadow);font-family:var(--f-body)}
+.cf-tour .driver-popover-title{font-family:var(--f-display);font-weight:800;font-size:18px;line-height:1.2}
+.cf-tour .driver-popover-description{font-size:14px;line-height:1.5;color:var(--muted);margin-top:6px}
+.cf-tour .driver-popover-progress-text{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.cf-tour .driver-popover-footer{margin-top:14px}
+.cf-tour .driver-popover-footer button{font-family:var(--f-body);font-size:13px;font-weight:700;text-shadow:none;border-radius:9px;padding:7px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.cf-tour .driver-popover-footer .driver-popover-next-btn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cf-tour .driver-popover-close-btn{color:var(--muted)}
+.cf-tour .driver-popover-arrow-side-left.driver-popover-arrow{border-left-color:var(--surface)}
+.cf-tour .driver-popover-arrow-side-right.driver-popover-arrow{border-right-color:var(--surface)}
+.cf-tour .driver-popover-arrow-side-top.driver-popover-arrow{border-top-color:var(--surface)}
+.cf-tour .driver-popover-arrow-side-bottom.driver-popover-arrow{border-bottom-color:var(--surface)}
+
+@media (max-width:899px){
+  .tabs{display:flex}
+  .stage{grid-template-columns:minmax(0,1fr);gap:0}
+  .stage[data-view="cliente"] .col-local,.stage[data-view="local"] .col-cliente{display:none}
+  .phone{background:transparent;padding:0;border-radius:0;box-shadow:none;position:static}
+  .screen{height:auto;min-height:0;overflow:visible;border-radius:20px;background:var(--surface)}
+  .paybar{border-radius:0 0 20px 20px}
+  .phead,.ticket{padding-left:18px;padding-right:18px}
+  .pgrid{padding-left:18px;padding-right:18px}
+  details.prices summary{padding-left:18px;padding-right:18px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>
+      </div>
+      <h1>Copiá Fácil</h1>
+    </div>
+    <button type="button" class="tour-btn" id="tour-btn">Ver recorrido</button>
+  </header>
+
+  <div class="tabs" id="tabs" role="tablist" aria-label="Vista">
+    <button role="tab" aria-selected="true" data-view="cliente">Cliente</button>
+    <button role="tab" aria-selected="false" data-view="local">Local <span class="badge" id="badge" data-n="0">0</span></button>
+  </div>
+
+  <main class="stage" id="stage" data-view="cliente">
+    <!-- CLIENT -->
+    <section class="col-cliente" aria-label="Vista del cliente">
+      <div class="phone">
+        <div class="screen" id="screen">
+          <div class="shopbar" id="shopbar">
+            <div class="av">EP</div>
+            <div><b>Kiosco El Puente</b><span>Av. Corrientes 1850</span></div>
+          </div>
+
+          <!-- Step 1: form -->
+          <form class="step" id="step-form" novalidate>
+            <h2>Mandá a imprimir</h2>
+
+            <div id="client-basics">
+              <div class="field">
+                <label class="lbl" for="f-name">Tu nombre</label>
+                <input class="txt" id="f-name" autocomplete="given-name" placeholder="Ej: Juan" maxlength="40">
+              </div>
+
+              <div class="field">
+                <span class="lbl">Archivo</span>
+                <label class="drop" id="drop" for="f-file">
+                  <span class="ic" id="drop-ic">+</span>
+                  <span class="meta"><b id="drop-name">Elegí un archivo</b><span id="drop-sub">PDF, Word o foto</span></span>
+                </label>
+                <input class="vis-hidden" type="file" id="f-file" accept=".pdf,.jpg,.jpeg,.png,.heic,.doc,.docx">
+                <button type="button" class="sample" id="sample">Usar un archivo de ejemplo</button>
+              </div>
+
+              <div class="inline" id="pages-row" hidden>
+                <label class="lbl" for="f-pages">¿Cuántas páginas tiene?</label>
+                <div class="stepper"><button type="button" data-step="pages" data-d="-1" aria-label="Menos páginas">−</button><input id="f-pages" type="number" min="1" max="999" value="1" inputmode="numeric"><button type="button" data-step="pages" data-d="1" aria-label="Más páginas">+</button></div>
+              </div>
+            </div>
+
+            <div id="print-opts">
+              <div class="inline">
+                <label class="lbl" for="f-copies">Copias</label>
+                <div class="stepper"><button type="button" data-step="copies" data-d="-1" aria-label="Menos copias">−</button><input id="f-copies" type="number" min="1" max="99" value="1" inputmode="numeric"><button type="button" data-step="copies" data-d="1" aria-label="Más copias">+</button></div>
+              </div>
+
+              <div class="field">
+                <div class="seg" role="radiogroup" aria-label="Color">
+                  <input type="radio" name="color" id="c-bn" value="bn" checked><label for="c-bn">Blanco y negro</label>
+                  <input type="radio" name="color" id="c-col" value="col"><label for="c-col">Color</label>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="seg" role="radiogroup" aria-label="Faz">
+                  <input type="radio" name="faz" id="z-s" value="simple"><label for="z-s">Simple faz</label>
+                  <input type="radio" name="faz" id="z-d" value="doble" checked><label for="z-d">Doble faz</label>
+                </div>
+              </div>
+
+              <details class="more" id="more">
+                <summary>Más opciones</summary>
+                <div class="field">
+                  <span class="lbl">Tamaño</span>
+                  <div class="seg" role="radiogroup" aria-label="Tamaño">
+                    <input type="radio" name="size" id="s-a4" value="A4" checked><label for="s-a4">A4</label>
+                    <input type="radio" name="size" id="s-of" value="Oficio"><label for="s-of">Oficio</label>
+                  </div>
+                </div>
+                <div class="field">
+                  <span class="lbl">Terminación</span>
+                  <div class="seg" role="radiogroup" aria-label="Terminación">
+                    <input type="radio" name="finish" id="t-no" value="ninguna" checked><label for="t-no">Suelto</label>
+                    <input type="radio" name="finish" id="t-ab" value="abrochado"><label for="t-ab">Abrochado</label>
+                    <input type="radio" name="finish" id="t-an" value="anillado"><label for="t-an">Anillado</label>
+                  </div>
+                </div>
+                <div class="field" style="margin-bottom:0">
+                  <label class="lbl" for="f-note">Nota para el local</label>
+                  <textarea class="txt" id="f-note" rows="2" maxlength="140" placeholder="Ej: la tapa en color"></textarea>
+                </div>
+              </details>
+            </div>
+
+            <div class="paybar" id="paybar">
+              <div class="tot"><b id="total">$ 0</b><span id="detail"></span></div>
+              <button type="submit" class="btn btn-primary" id="go-pay">Ir a pagar</button>
+            </div>
+          </form>
+
+          <!-- Step 2: pay -->
+          <section class="step" id="step-pay" hidden>
+            <div id="pay-zone">
+              <div class="ordlbl">Total a pagar</div>
+              <div class="amount" id="pay-amount">$ 0</div>
+              <p class="paysub" id="pay-sub"></p>
+              <button class="btn btn-dark btn-block" id="pay-btn" type="button">Pagar con Mercado Pago</button>
+            </div>
+            <div class="center"><button class="link" id="back-edit" type="button">Volver</button></div>
+          </section>
+
+          <!-- Step 3: status -->
+          <section class="step" id="step-status" hidden>
+            <div id="st-head">
+              <div class="okline" id="st-banner"></div>
+              <div class="ordlbl">Tu número</div>
+              <div class="ordnum" id="st-num">#104</div>
+              <p class="stlead" id="st-lead"></p>
+              <ol class="timeline" id="st-timeline"></ol>
+            </div>
+            <div class="notify" id="notify-box"></div>
+            <button class="btn btn-primary btn-block" id="see-panel" type="button">Ver en el panel del local</button>
+            <div class="center"><button class="link" id="new-order" type="button">Hacer otro pedido</button></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOP PANEL -->
+    <section class="col-local" aria-label="Panel del local">
+      <div class="panel" id="panel">
+        <div class="phead">
+          <div><h2>Pedidos</h2><p id="today">Kiosco El Puente</p></div>
+          <div class="stats" id="stats">
+            <div class="stat"><small>Por imprimir</small><b id="k-queue">0</b></div>
+            <div class="stat"><small>Cobrado hoy</small><b id="k-money">$ 0</b></div>
+          </div>
+        </div>
+        <div class="list" id="list"></div>
+        <details class="prices" id="prices">
+          <summary>Precios del local</summary>
+          <div class="pgrid" id="pgrid"></div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const fmt = n => '$ ' + Math.round(n).toLocaleString('es-AR');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+  const isMobile = () => window.matchMedia('(max-width:899px)').matches;
+
+  const prices = { bnS:150, bnD:120, colS:600, colD:550, abroch:200, anill:2500 };
+  const PRICE_FIELDS = [
+    ['bnS','B/N simple faz'], ['bnD','B/N doble faz'],
+    ['colS','Color simple faz'], ['colD','Color doble faz'],
+    ['abroch','Abrochado'], ['anill','Anillado']
+  ];
+  const STATUS = {
+    nuevo:{label:'Nuevo', cls:'p-nuevo'},
+    imprimiendo:{label:'Imprimiendo', cls:'p-imprimiendo'},
+    listo:{label:'Listo', cls:'p-listo'},
+    rechazado:{label:'Devuelto', cls:'p-rechazado'}
+  };
+
+  try {
+    const d = new Date().toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+    $('#today').textContent = 'Kiosco El Puente · ' + d;
+  } catch(e){}
+
+  function calc(o){
+    const n = Math.max(1, o.pages|0);
+    const copies = Math.max(1, o.copies|0);
+    const doble = o.faz === 'doble' && n > 1;
+    const per = prices[(o.color === 'col' ? 'col' : 'bn') + (doble ? 'D' : 'S')];
+    const carillas = n * copies;
+    const finishPer = o.finish === 'abrochado' ? prices.abroch : o.finish === 'anillado' ? prices.anill : 0;
+    return { n, copies, doble, per, carillas, total: carillas * per + finishPer * copies };
+  }
+  function specText(o){
+    const c = calc(o);
+    const parts = [
+      c.copies + (c.copies === 1 ? ' copia' : ' copias'),
+      c.n + (c.n === 1 ? ' pág.' : ' págs.'),
+      o.color === 'col' ? 'Color' : 'B/N',
+      c.doble ? 'Doble faz' : 'Simple faz'
+    ];
+    if (o.size && o.size !== 'A4') parts.push(o.size);
+    if (o.finish && o.finish !== 'ninguna') parts.push(o.finish === 'anillado' ? 'Anillado' : 'Abrochado');
+    return parts.join(' · ');
+  }
+
+  // ---------- sample orders ----------
+  const now = Date.now();
+  const mk = (num,name,file,pages,copies,color,faz,finish,note,status,minsAgo) => {
+    const o = {num,name,file,pages,copies,color,faz,size:'A4',finish,note,status,t:now-minsAgo*60000};
+    o.total = calc(o).total; return o;
+  };
+  const orders = [
+    mk(103,'Sofía','Apunte_Anatomia_Unidad3.pdf',58,1,'bn','doble','abrochado','','nuevo',4),
+    mk(102,'Lucas','DNI_frente_y_dorso.jpg',1,2,'bn','simple','ninguna','Las dos caras en la misma hoja','imprimiendo',11),
+    mk(101,'Martina','TP_Final_Sociologia.pdf',24,1,'bn','doble','anillado','','listo',26)
+  ];
+  let delivered = [mk(100,'Diego','CV_Diego_Ramirez.pdf',2,5,'bn','simple','ninguna','','entregado',48)];
+  let nextNum = 104, confirmReject = null, myOrder = null, freshNum = null;
+
+  // ---------- client form ----------
+  const f = { name: $('#f-name'), file: $('#f-file'), pages: $('#f-pages'), copies: $('#f-copies'), note: $('#f-note') };
+  let fileInfo = null;
+  const SAMPLE_FILE = { name:'Resumen_Historia_CBC.pdf', pages: 12 };
+
+  function radio(name){ const el = document.querySelector('input[name="'+name+'"]:checked'); return el ? el.value : null; }
+  function formState(){
+    return {
+      name: f.name.value.trim(), file: fileInfo ? fileInfo.name : '', pages: +f.pages.value || 1,
+      copies: +f.copies.value || 1, color: radio('color'), faz: radio('faz'), size: radio('size'),
+      finish: radio('finish'), note: f.note.value.trim()
+    };
+  }
+  function setFile(info){
+    fileInfo = info;
+    $('#drop').classList.add('has');
+    $('#drop-ic').textContent = (info.name.split('.').pop() || '').slice(0,4);
+    $('#drop-name').textContent = info.name;
+    $('#drop-sub').textContent = info.pages ? info.pages + (info.pages === 1 ? ' página' : ' páginas') + ' · Cambiar' : 'Cambiar';
+    $('#pages-row').hidden = !!info.pages;
+    f.pages.value = info.pages || 1;
+    update();
+  }
+  async function countPdfPages(file){
+    try{
+      if (file.size > 60e6) return null;
+      const txt = new TextDecoder('latin1').decode(await file.arrayBuffer());
+      const m = txt.match(/\/Type\s*\/Page(?![s\w])/g);
+      if (m && m.length) return m.length;
+      let max = 0; for (const x of txt.matchAll(/\/Count\s+(\d+)/g)) max = Math.max(max, +x[1]);
+      return max || null;
+    }catch(e){ return null; }
+  }
+  f.file.addEventListener('change', async () => {
+    const file = f.file.files && f.file.files[0];
+    if (!file) return;
+    $('#drop-name').textContent = file.name; $('#drop-sub').textContent = 'Contando páginas…';
+    let pages = null;
+    if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') pages = await countPdfPages(file);
+    else if (/^image\//.test(file.type) || /\.(jpe?g|png|heic)$/i.test(file.name)) pages = 1;
+    setFile({ name:file.name, pages });
+  });
+  $('#sample').addEventListener('click', () => setFile(Object.assign({}, SAMPLE_FILE)));
+
+  $$('[data-step]').forEach(b => b.addEventListener('click', () => {
+    const inp = f[b.dataset.step];
+    inp.value = clamp((+inp.value || 1) + (+b.dataset.d), +inp.min, +inp.max);
+    update();
+  }));
+  $('#step-form').addEventListener('input', update);
+  $('#step-form').addEventListener('change', update);
+
+  function update(){
+    const s = formState();
+    const c = calc(s);
+    $('#total').textContent = fmt(c.total);
+    const miss = [];
+    if (!s.name) miss.push('tu nombre');
+    if (!fileInfo) miss.push('el archivo');
+    const det = $('#detail');
+    if (miss.length){ det.textContent = 'Falta ' + miss.join(' y '); det.className = 'miss'; }
+    else { det.textContent = c.carillas + (c.carillas === 1 ? ' carilla' : ' carillas') + ' × ' + fmt(c.per); det.className = ''; }
+    $('#go-pay').disabled = miss.length > 0;
+  }
+
+  // ---------- steps ----------
+  const screen = $('#screen');
+  function showStep(id, scroll){
+    ['step-form','step-pay','step-status'].forEach(s => $('#'+s).hidden = s !== id);
+    screen.scrollTop = 0;
+    if (scroll !== false && isMobile()) $('#stage').scrollIntoView({block:'start'});
+  }
+  let pending = null;
+  function goToPay(scroll){
+    pending = formState();
+    $('#pay-amount').textContent = fmt(calc(pending).total);
+    $('#pay-sub').textContent = pending.file + ' · ' + specText(pending);
+    $('#pay-btn').disabled = false; $('#pay-btn').textContent = 'Pagar con Mercado Pago';
+    showStep('step-pay', scroll);
+  }
+  function completePayment(scroll){
+    const o = Object.assign({}, pending || formState(), { num: nextNum++, status:'nuevo', t: Date.now() });
+    o.total = calc(o).total;
+    orders.unshift(o); myOrder = o; freshNum = o.num;
+    renderPanel(); renderStatus(); showStep('step-status', scroll);
+    toast('Nuevo pedido de ' + o.name + ' · ' + fmt(o.total));
+    return o;
+  }
+  $('#step-form').addEventListener('submit', e => { e.preventDefault(); if (!$('#go-pay').disabled) goToPay(); });
+  $('#back-edit').addEventListener('click', () => showStep('step-form'));
+  $('#pay-btn').addEventListener('click', () => {
+    const b = $('#pay-btn'); b.disabled = true; b.innerHTML = '<span class="spin"></span> Procesando…';
+    setTimeout(() => completePayment(), 1200);
+  });
+  $('#new-order').addEventListener('click', () => {
+    f.name.value = ''; f.note.value = ''; f.copies.value = 1; fileInfo = null; f.file.value = '';
+    $('#drop').classList.remove('has'); $('#drop-ic').textContent = '+';
+    $('#drop-name').textContent = 'Elegí un archivo'; $('#drop-sub').textContent = 'PDF, Word o foto';
+    $('#pages-row').hidden = true; f.pages.value = 1;
+    update(); showStep('step-form');
+  });
+  $('#see-panel').addEventListener('click', () => {
+    if (isMobile()) { setView('local'); window.scrollTo({top:0, behavior:'smooth'}); }
+    else { freshNum = myOrder && myOrder.num; renderPanel(); }
+  });
+
+  const CHECK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+  function renderStatus(){
+    const o = myOrder; if (!o) return;
+    $('#st-num').textContent = '#' + o.num;
+    const rejected = o.status === 'rechazado';
+    const banner = $('#st-banner');
+    banner.className = 'okline' + (rejected ? ' bad' : '');
+    banner.innerHTML = rejected
+      ? 'Te devolvimos ' + fmt(o.total)
+      : CHECK.replace('width="12" height="12"','width="16" height="16"') + ' Pagaste ' + fmt(o.total);
+    const leads = {
+      nuevo:'Estás en la cola. Te avisamos acá cuando esté listo.',
+      imprimiendo:'Están imprimiendo tu pedido.',
+      listo:'¡Listo! Pasá por el mostrador.',
+      entregado:'¡Gracias!',
+      rechazado:'El local no pudo imprimir tu pedido.'
+    };
+    $('#st-lead').textContent = leads[o.status];
+    renderNotify();
+    const idx = o.status === 'entregado' ? 2 : ['nuevo','imprimiendo','listo'].indexOf(o.status);
+    $('#st-timeline').hidden = rejected;
+    $('#st-timeline').innerHTML = ['Pago recibido','Imprimiendo','Listo para retirar'].map((s,i) => {
+      const st = (i === 0 || i < idx || (i === 2 && idx === 2)) ? 'done' : (i === idx ? 'now' : '');
+      return `<li class="${st}"><span class="dot">${st === 'done' ? CHECK : ''}</span><span>${s}</span></li>`;
+    }).join('');
+  }
+
+  // ---------- notifications ----------
+  const BELL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = () => navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  let swReg = null;
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('sw.js').then(r => { swReg = r; }).catch(() => {});
+  }
+  let notifyMsg = null; // extra message after a failed attempt
+
+  function notifySupport(){
+    if (!window.isSecureContext) return 'insecure';
+    if (!('Notification' in window)) return isIOS && !isStandalone() ? 'ios-home' : 'unsupported';
+    return Notification.permission; // default | granted | denied
+  }
+  function renderNotify(){
+    const box = $('#notify-box');
+    const o = myOrder;
+    if (!o || !['nuevo','imprimiendo'].includes(o.status)) { box.hidden = true; return; }
+    box.hidden = false;
+    const s = notifySupport();
+    box.className = 'notify';
+    if (s === 'granted'){
+      box.classList.add('ok');
+      box.innerHTML = `<span class="bell">${BELL}</span><p>Te vamos a avisar al celu cuando esté listo.</p>`;
+    } else if (s === 'default'){
+      box.innerHTML = `<span class="bell">${BELL}</span><p>${notifyMsg || '¿Te avisamos cuando esté listo? Así no tenés que esperar en el local.'}</p><button type="button" class="nbtn" id="notify-btn">Recibir notificación</button>`;
+    } else {
+      box.classList.add('muted');
+      const msg = {
+        denied: 'Bloqueaste las notificaciones. Podés activarlas desde la configuración del navegador.',
+        'ios-home': 'En iPhone: tocá Compartir y "Agregar a inicio". Abrí la página desde ahí para recibir notificaciones.',
+        insecure: 'Las notificaciones necesitan una conexión segura (https). Funcionan cuando la página está publicada.',
+        unsupported: 'Este navegador no permite notificaciones.'
+      }[s];
+      box.innerHTML = `<span class="bell">${BELL}</span><p>${msg}</p>`;
+    }
+  }
+  $('#notify-box').addEventListener('click', async e => {
+    if (!e.target.closest('#notify-btn')) return;
+    try {
+      const res = await Notification.requestPermission();
+      if (res === 'granted') {
+        notifyMsg = null;
+        showNotification('¡Listo, te vamos a avisar!', 'Te mandamos una notificación cuando tu pedido #' + myOrder.num + ' esté para retirar.');
+      } else if (res === 'default') {
+        notifyMsg = 'No se activaron. Tocá de nuevo y elegí "Permitir".';
+      }
+    } catch(err) {}
+    renderNotify();
+  });
+  async function showNotification(title, body){
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const opts = { body, icon: 'icon.svg', badge: 'icon.svg', tag: 'copia-facil', renotify: true };
+    try {
+      const reg = swReg || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration());
+      if (reg) { await reg.showNotification(title, opts); return; }
+    } catch(e) {}
+    try { new Notification(title, opts); } catch(e) {}
+  }
+
+  // ---------- panel ----------
+  function ago(t){ const m = Math.round((Date.now() - t)/60000); return m < 1 ? 'recién' : 'hace ' + m + ' min'; }
+  function renderPanel(){
+    const queue = orders.filter(o => o.status === 'nuevo').length;
+    const money = orders.concat(delivered).filter(o => o.status !== 'rechazado').reduce((a,o) => a + o.total, 0);
+    $('#k-queue').textContent = queue;
+    $('#k-money').textContent = fmt(money);
+    const badge = $('#badge'); badge.textContent = queue; badge.dataset.n = queue;
+    $('#list').innerHTML = orders.length ? orders.map(ticket).join('') : '<div class="empty">No hay pedidos pendientes. Cuando un cliente pague, aparece acá.</div>';
+    freshNum = null;
+  }
+  function ticket(o){
+    let actions = '';
+    if (confirmReject === o.num){
+      actions = `<span class="confirm">¿Devolver ${fmt(o.total)}?</span><button class="abtn" data-act="reject-no" data-num="${o.num}">No</button><button class="abtn danger" data-act="reject-yes" data-num="${o.num}">Sí, devolver</button>`;
+    } else if (o.status === 'nuevo'){
+      actions = `<button class="abtn quiet" data-act="reject" data-num="${o.num}">Rechazar</button><button class="abtn main" data-act="print" data-num="${o.num}">Imprimir</button>`;
+    } else if (o.status === 'imprimiendo'){
+      actions = `<button class="abtn main" data-act="ready" data-num="${o.num}">Marcar listo</button>`;
+    } else if (o.status === 'listo'){
+      actions = `<button class="abtn" data-act="deliver" data-num="${o.num}">Entregado</button>`;
+    } else if (o.status === 'rechazado'){
+      actions = `<button class="abtn quiet" data-act="dismiss" data-num="${o.num}">Quitar</button>`;
+    }
+    return `<article class="ticket${freshNum === o.num ? ' fresh' : ''}">
+      <div class="thead"><span class="tname">${esc(o.name)}</span><span class="tnum">#${o.num}</span><span class="ttime" data-t="${o.t}">${ago(o.t)}</span><span class="pill ${STATUS[o.status].cls}">${STATUS[o.status].label}</span></div>
+      <div class="tfile">${esc(o.file)}</div>
+      <div class="tspec">${esc(specText(o))}</div>
+      ${o.note ? `<div class="tnote">“${esc(o.note)}”</div>` : ''}
+      <div class="tfoot"><span class="tprice">${fmt(o.total)}<small>${o.status === 'rechazado' ? '' : 'pagado'}</small></span><div class="actions">${actions}</div></div>
+    </article>`;
+  }
+  $('#list').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const o = orders.find(x => x.num === +b.dataset.num); if (!o) return;
+    const act = b.dataset.act;
+    if (act === 'reject') confirmReject = o.num;
+    else if (act === 'reject-no') confirmReject = null;
+    else if (act === 'reject-yes'){ confirmReject = null; o.status = 'rechazado'; toast('Le devolvimos ' + fmt(o.total) + ' a ' + o.name); }
+    else if (act === 'print'){ o.status = 'imprimiendo'; toast('Enviado a la impresora'); }
+    else if (act === 'ready'){ o.status = 'listo'; toast('Le avisamos a ' + o.name); }
+    else if (act === 'deliver'){ o.status = 'entregado'; orders.splice(orders.indexOf(o),1); delivered.push(o); toast('Pedido #' + o.num + ' entregado'); }
+    else if (act === 'dismiss'){ orders.splice(orders.indexOf(o),1); }
+    renderPanel();
+    if (myOrder && myOrder.num === o.num) {
+      renderStatus();
+      if (act === 'ready') showNotification('¡Tu pedido está listo!', '#' + o.num + ' · Pasá a retirarlo por Kiosco El Puente.');
+      if (act === 'reject-yes') showNotification('No pudimos imprimir tu pedido', 'Te devolvimos ' + fmt(o.total) + ' a tu cuenta.');
+    }
+  });
+
+  $('#pgrid').innerHTML = PRICE_FIELDS.map(([k,l]) =>
+    `<label for="p-${k}">${l}<span class="pinput"><span>$</span><input id="p-${k}" data-key="${k}" type="number" min="0" step="10" value="${prices[k]}" inputmode="numeric"></span></label>`).join('');
+  $('#pgrid').addEventListener('input', e => {
+    const k = e.target.dataset.key; if (!k) return;
+    prices[k] = Math.max(0, +e.target.value || 0);
+    update();
+  });
+
+  function setView(v){
+    $('#stage').dataset.view = v;
+    $$('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.view === v));
+  }
+  $$('.tabs button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+
+  let tt;
+  function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2600); }
+  setInterval(() => $$('.ttime[data-t]').forEach(el => el.textContent = ago(+el.dataset.t)), 30000);
+
+  setFile(Object.assign({}, SAMPLE_FILE));
+  renderPanel();
+
+  // ---------- guided tour ----------
+  let tourOrder = null;
+  const toForm = () => { setView('cliente'); if ($('#step-form').hidden) showStep('step-form', false); };
+  const P = (title, description, side) => ({ title, description, side: side || 'bottom', align: 'start' });
+
+  function buildSteps(){
+    const mobile = isMobile();
+    const side = mobile ? 'bottom' : 'right';
+    const pside = mobile ? 'bottom' : 'left';
+    return [
+      { prep: toForm, popover: P('Así funciona Copiá Fácil', 'Tus clientes te mandan a imprimir desde el celu, sin mails ni WhatsApp.') },
+      mobile && { element:'#tabs', prep: toForm, popover: P('Dos vistas', 'Acá cambiás entre lo que ve el cliente y lo que ves vos en el local.') },
+      { element:'#shopbar', prep: toForm, popover: P('Escanea tu QR', 'El cliente escanea el QR del mostrador y entra a la página de tu local. Sin apps ni cuentas.', side) },
+      { element:'#client-basics', prep: toForm, popover: P('Nombre y archivo', 'Pone su nombre y sube el archivo. Si es PDF, las páginas se cuentan solas.', side) },
+      { element:'#print-opts', prep: toForm, popover: P('Cómo lo quiere', 'Copias, color y doble faz. En "Más opciones" elige tamaño, abrochado o anillado.', side) },
+      { element:'#paybar', prep: toForm, popover: P('Precio al instante', 'El total se calcula con tus precios mientras elige.', mobile ? 'top' : side) },
+      { element:'#pay-zone', prep: () => {
+          setView('cliente');
+          if (!f.name.value.trim()) f.name.value = 'Juan';
+          if (!fileInfo) setFile(Object.assign({}, SAMPLE_FILE));
+          update();
+          goToPay(false);
+        }, popover: P('Paga con Mercado Pago', 'Paga antes de que imprimas. La plata va directo a tu cuenta.', side) },
+      { element:'#st-head', prep: () => {
+          setView('cliente');
+          if (!tourOrder) tourOrder = completePayment(false); else showStep('step-status', false);
+        }, popover: P('Sigue su pedido', 'Recibe un número y ve en qué paso está su pedido.', side) },
+      { element:'#notify-box', prep: () => { setView('cliente'); if ($('#step-status').hidden) showStep('step-status', false); },
+        popover: P('Le avisamos al celu', 'Con un toque acepta las notificaciones. Cuando marcás el pedido como listo, le llega el aviso aunque esté haciendo otra cosa.', side) },
+      { element:'#list .ticket', prep: () => setView('local'), popover: P('Te llega completo', 'Archivo, opciones y ya pagado. Tocás Imprimir y después Marcar listo. Si rechazás, se le devuelve la plata.', pside) },
+      { element:'#prices', prep: () => { setView('local'); $('#prices').open = true; }, popover: P('Tus precios', 'Cargás lo que cobrás y el cliente siempre ve el precio actualizado.', mobile ? 'top' : pside) },
+      { prep: () => setView('cliente'), popover: P('Probalo vos', 'Hacé un pedido y mirá cómo llega al panel.') }
+    ].filter(Boolean);
+  }
+
+  function startTour(){
+    if (!window.driver || !window.driver.js) { toast('No se pudo cargar el recorrido'); return; }
+    const steps = buildSteps();
+    const go = (i, d) => {
+      const s = steps[i]; if (!s) { d.destroy(); return; }
+      if (s.prep) s.prep();
+      setTimeout(() => d.drive(i), 120);
+    };
+    const d = window.driver.js.driver({
+      steps: steps.map(s => ({ element: s.element, popover: s.popover })),
+      showProgress: true,
+      progressText: '{{current}} de {{total}}',
+      nextBtnText: 'Siguiente',
+      prevBtnText: 'Anterior',
+      doneBtnText: 'Listo',
+      popoverClass: 'cf-tour',
+      overlayColor: '#0b0c0f',
+      overlayOpacity: 0.55,
+      stagePadding: 8,
+      stageRadius: 14,
+      allowClose: true,
+      onNextClick: (el, step, opts) => {
+        const i = opts.state.activeIndex;
+        if (i >= steps.length - 1) { d.destroy(); return; }
+        go(i + 1, d);
+      },
+      onPrevClick: (el, step, opts) => {
+        const i = opts.state.activeIndex;
+        if (i > 0) go(i - 1, d);
+      }
+    });
+    go(0, d);
+    try { localStorage.setItem('cf-tour-seen', '1'); } catch(e){}
+  }
+  $('#tour-btn').addEventListener('click', startTour);
+
+  let seen = false;
+  try { seen = localStorage.getItem('cf-tour-seen') === '1'; } catch(e){}
+  if (!seen) window.addEventListener('load', () => setTimeout(startTour, 500));
+})();
+</script>
+</body>
+</html>

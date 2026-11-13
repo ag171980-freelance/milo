@@ -1,0 +1,16 @@
+# Dependencias y build
+frontend/node_modules/
+frontend/dist/
+
+# Configuración local con secretos (APP_KEY, tokens): nunca al repo
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Archivos que suben los clientes
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+
+# Sistema / editor
+.DS_Store
+*.log

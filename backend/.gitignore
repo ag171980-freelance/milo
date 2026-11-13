@@ -1,0 +1,4 @@
+.env
+.env.production
+storage/uploads/*
+!storage/uploads/.gitkeep
